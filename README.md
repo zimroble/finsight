@@ -1,70 +1,95 @@
-# Getting Started with Create React App
+# FinSight
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A personal finance dashboard built with React. It charts where your money
+goes, lets you add or import transactions, and has an AI chat that answers
+questions about your spending using your own category totals.
 
-## Available Scripts
+**Stack:** React 19 · Recharts · Create React App · LLM API (Anthropic Messages API)
 
-In the project directory, you can run:
+![FinSight dashboard](docs/dashboard.png)
 
-### `npm start`
+![Transactions tab](docs/transactions.png)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Features
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- **Dashboard**
+  - Summary cards for total spent, top category and biggest purchase.
+  - A donut chart that breaks spending down across 7 categories (Food,
+    Transport, Shopping, Entertainment, Health, Utilities, Other). It's
+    recomputed from the transaction list whenever it changes.
+  - A 6-month spending trend area chart. The trend currently uses built-in
+    sample data.
+- **Transactions**
+  - A table of every transaction, newest first, with the count and total.
+  - A form to add one by hand (date, description, amount, category).
+  - CSV import. Rows with a missing date or description, or an amount that
+    isn't a number, are skipped.
+- **AI Insights**
+  - A chat where you ask things like "Where am I overspending?".
+  - Each question goes to the LLM with your per-category totals and overall
+    total as context, so the answers are about your actual numbers.
+  - Suggested-question buttons to get started.
 
-### `npm test`
+## Getting started
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+npm install
+npm start          # http://localhost:3000
+```
 
-### `npm run build`
+The dashboard and transactions work with no setup. To turn on the AI chat,
+create a `.env` file in the project root and restart `npm start`:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+REACT_APP_ANTHROPIC_KEY=your-api-key
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+`.env` is in `.gitignore`. Keep it that way, and never commit a key.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Importing a CSV
 
-### `npm run eject`
+The first line is treated as a header and skipped. Columns are
+`date,description,amount,category`:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```csv
+date,description,amount,category
+2026-03-01,Whole Foods Market,94.32,Food
+2026-03-02,Uber,18.50,Transport
+2026-03-04,Netflix,15.99,Entertainment
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+If the category is blank, the row goes under **Other**. An import replaces
+the current transaction list. The parser splits on commas, so descriptions
+can't contain commas.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Limitations and next steps
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+This is a front-end-only project, so a few things work differently from
+how a production app would do them:
 
-## Learn More
+- **The API key is in the browser bundle.** Create React App inlines every
+  `REACT_APP_*` variable into the built JavaScript, and the chat calls the LLM
+  API from the browser through a public CORS proxy (`corsproxy.io`). Only run
+  it locally with a key that has a low spending limit, and don't deploy a
+  build that has a key in it. The fix is a small backend endpoint that holds
+  the key and makes the LLM call for the browser.
+- **Nothing is saved.** Transactions live in React state and reset on reload.
+  Persisting them (`localStorage` or a database) is the next step.
+- **The 6-month trend uses sample data.** It could be computed from the
+  transaction dates instead.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Project layout
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```
+src/App.js       the whole app: state, charts, transactions, CSV import, chat
+src/index.js     React entry point
+public/          HTML shell and icons
+```
 
-### Code Splitting
+## Scripts
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+| command | |
+|---|---|
+| `npm start` | dev server with hot reload |
+| `npm run build` | production build in `build/` |
+| `npm test` | Jest + React Testing Library smoke tests (dashboard totals, adding a transaction) |
